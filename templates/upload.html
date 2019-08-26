@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="static/css/normalize.css"/>
+    <link rel="stylesheet" type="text/css" href="static/css/default.css">
+    <link href="static/assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="static/dist/cropper.css" rel="stylesheet">
+    <link href="static/css/main.css" rel="stylesheet">
+
+    <script src="static/assets/js/jquery.min.js"></script>
+    <script src="static/assets/js/bootstrap.min.js"></script>
+    <script src="static/dist/cropper.js"></script>
+    <script src="static/js/main.js"></script>
+    <title>上传文件页面</title>
+</head>
+<body>
+<form action="" method="post" enctype="multipart/form-data">
+    <p>
+        <input type="file" name="file" multiple>
+        <input type=submit value="upload">
+    </p>
+</form>
+<input type="text" id="labelName">
+<input hidden="hidden" type="text" id="imageName">
+<button id="labelData">保存标签</button>
+<button id="labelPost">存入后台</button>
+<div>
+    <ul id="uploadFileList"></ul>
+</div>
+<div>
+    <ul id="labelList"></ul>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col-md-9">
+            <div class="img-container">
+                <img src="static/assets/img/picture.jpg" alt="Picture">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <!-- <h3 class="page-header">Data:</h3> -->
+            <div class="docs-data">
+                <div class="input-group">
+                    <label class="input-group-addon" for="dataX">X</label>
+                    <input class="form-control" id="dataX" type="text" placeholder="x">
+                    <span class="input-group-addon">px</span>
+                </div>
+                <div class="input-group">
+                    <label class="input-group-addon" for="dataY">Y</label>
+                    <input class="form-control" id="dataY" type="text" placeholder="y">
+                    <span class="input-group-addon">px</span>
+                </div>
+                <div class="input-group">
+                    <label class="input-group-addon" for="dataWidth">Width</label>
+                    <input class="form-control" id="dataWidth" type="text" placeholder="width">
+                    <span class="input-group-addon">px</span>
+                </div>
+                <div class="input-group">
+                    <label class="input-group-addon" for="dataHeight">Height</label>
+                    <input class="form-control" id="dataHeight" type="text" placeholder="height">
+                    <span class="input-group-addon">px</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $.ajax({
+        url: "view",
+        type: "POST",
+        dataType: "json",
+        success: function (data) {
+            var list = "";
+            var map = data;
+            for (var key in map) {
+                list += "<li value='" + map[key] + "'>" + key + "</li>";
+            }
+            $("#uploadFileList").append(list);
+        }
+    })
+
+    //列表点击事件
+    $('ul').on('click', 'li', function () {
+        var url = $(this).attr("value");
+        //同时替换图片名称
+        $("#imageName").val($(this).text());
+        var $image = $('.img-container > img');
+        $image.one('built.cropper', function () {
+        }).cropper('reset', true).cropper('replace', url);
+    });
+
+    //前台标签保存
+    $("#labelData").on('click', function () {
+        var labelName = $("#labelName").val();
+        var imageName = $("#imageName").val();
+        var x = parseInt($("#dataX").val());
+        var y = parseInt($("#dataY").val());
+        var width = parseInt($("#dataWidth").val());
+        var height = parseInt($("#dataHeight").val());
+        var xyData = imageName + " " + labelName + " " + x.toString() + " " + (x + width).toString() + " " + y.toString() + " " + (y + height).toString();
+        var list = "<li class ='eachLabel' value='" + xyData + "'>" + labelName + "</li>";
+        $("#labelList").append(list);
+    });
+
+    $("#labelPost").on('click', function () {
+        var labelList = [];
+        $(".eachLabel").each(function () {
+            labelList.push($(this).attr("value"));
+        });
+        var data = {
+            data: JSON.stringify(labelList)
+        };
+        $.ajax({
+            url: "saveLabel",
+            type: "POST",
+            data: data,
+            dataType: "json",
+            success: function (res) {
+                console.log(res);
+            }
+        });
+    });
+</script>
+</body>
+</html>

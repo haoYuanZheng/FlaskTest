@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>上传图片截取标签</title>
     <link rel="stylesheet" type="text/css" href="static/css/normalize.css"/>
     <link rel="stylesheet" type="text/css" href="static/css/default.css">
     <link href="static/assets/css/bootstrap.min.css" rel="stylesheet">
@@ -12,60 +13,103 @@
     <script src="static/assets/js/bootstrap.min.js"></script>
     <script src="static/dist/cropper.js"></script>
     <script src="static/js/main.js"></script>
-    <title>上传文件页面</title>
+
+    <style>
+        #nav {
+            line-height: 30px;
+            background-color: #eeeeee;
+            height: 400px;
+            width: 200px;
+            float: left;
+            padding: 5px;
+        }
+
+        #nav2 {
+            line-height: 30px;
+            background-color: #eeeeee;
+            height: 400px;
+            width: 340px;
+            float: right;
+            padding: 5px;
+        }
+
+        {##nav3 {
+            line-height: 30px;
+            background-color: #eeeeee;
+            height: 300px;
+            width: 340px;
+            float: right;
+            padding: 5px;
+        }#}
+
+        #footer {
+            background-color: black;
+            color: white;
+            clear: both;
+        }
+    </style>
 </head>
 <body>
-<form action="" method="post" enctype="multipart/form-data">
-    <p>
-        <input type="file" name="file" multiple>
-        <input type=submit value="upload">
-    </p>
-</form>
-<input type="text" id="labelName">
-<input hidden="hidden" type="text" id="imageName">
-<button id="labelData">保存标签</button>
-<button id="labelPost">存入后台</button>
-<div>
-    <ul id="uploadFileList"></ul>
+<div id="nav">
+    <form action="" method="post" enctype="multipart/form-data">
+        <p>
+            <input type="file" name="file" multiple>
+            <input type=submit value="upload">
+        </p>
+    </form>
+    <ul style="list-style: none;padding-left: 0" id="uploadFileList"></ul>
 </div>
-<div>
-    <ul id="labelList"></ul>
+<div id="nav2">
+    <input type="text" id="labelName" placeholder="请输入标签名称">
+    <input hidden="hidden" type="text" id="imageName">
+    <button id="labelData">暂存标签</button>
+    <button id="labelPost">存入后台</button>
+    <ol style="list-style: none;padding-left: 0" id="labelList"></ol>
 </div>
 <div class="container">
     <div class="row">
         <div class="col-md-9">
             <div class="img-container">
-                <img src="static/assets/img/picture.jpg" alt="Picture">
-            </div>
-        </div>
-        <div class="col-md-3">
-            <!-- <h3 class="page-header">Data:</h3> -->
-            <div class="docs-data">
-                <div class="input-group">
-                    <label class="input-group-addon" for="dataX">X</label>
-                    <input class="form-control" id="dataX" type="text" placeholder="x">
-                    <span class="input-group-addon">px</span>
-                </div>
-                <div class="input-group">
-                    <label class="input-group-addon" for="dataY">Y</label>
-                    <input class="form-control" id="dataY" type="text" placeholder="y">
-                    <span class="input-group-addon">px</span>
-                </div>
-                <div class="input-group">
-                    <label class="input-group-addon" for="dataWidth">Width</label>
-                    <input class="form-control" id="dataWidth" type="text" placeholder="width">
-                    <span class="input-group-addon">px</span>
-                </div>
-                <div class="input-group">
-                    <label class="input-group-addon" for="dataHeight">Height</label>
-                    <input class="form-control" id="dataHeight" type="text" placeholder="height">
-                    <span class="input-group-addon">px</span>
-                </div>
+                <img src="" alt="Picture">
             </div>
         </div>
     </div>
 </div>
+<div id="footer">
+    <div class="col-md-3">
+        <!-- <h3 class="page-header">Data:</h3> -->
+        <div class="docs-data">
+            <div class="input-group">
+                <label class="input-group-addon" for="dataX">X</label>
+                <input class="form-control" id="dataX" type="text" placeholder="x">
+                <span class="input-group-addon">px</span>
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon" for="dataY">Y</label>
+                <input class="form-control" id="dataY" type="text" placeholder="y">
+                <span class="input-group-addon">px</span>
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon" for="dataWidth">Width</label>
+                <input class="form-control" id="dataWidth" type="text" placeholder="width">
+                <span class="input-group-addon">px</span>
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon" for="dataHeight">Height</label>
+                <input class="form-control" id="dataHeight" type="text" placeholder="height">
+                <span class="input-group-addon">px</span>
+            </div>
+        </div>
+    </div>
+</div>
+<input type="text" hidden="hidden" id="labelFile">
+<input type="text" hidden="hidden" id="classFile">
+<input type="text" hidden="hidden" id="hasClassFile">
+
+
 <script>
+    var localStorage = window.localStorage;
+
     $.ajax({
         url: "view",
         type: "POST",
@@ -78,7 +122,19 @@
             }
             $("#uploadFileList").append(list);
         }
-    })
+    });
+
+    $.ajax({
+        url: "viewTwo",
+        type: "POST",
+        dataType: "json",
+        success: function (data) {
+            if (data != null) {
+                $("#labelFile").val(data.label_file_name);
+                $("#classFile").val(data.class_file_name);
+            }
+        }
+    });
 
     //列表点击事件
     $('ul').on('click', 'li', function () {
@@ -87,7 +143,12 @@
         $("#imageName").val($(this).text());
         var $image = $('.img-container > img');
         $image.one('built.cropper', function () {
-        }).cropper('reset', true).cropper('replace', url);
+        }).cropper('reset', true).cropper('replace', url).cropper("setAspectRatio", NaN);
+
+        $(".eachLabel").each(function () {
+            //切换一次图片清空保存的标签
+            $(this).remove();
+        });
     });
 
     //前台标签保存
@@ -98,29 +159,79 @@
         var y = parseInt($("#dataY").val());
         var width = parseInt($("#dataWidth").val());
         var height = parseInt($("#dataHeight").val());
-        var xyData = imageName + " " + labelName + " " + x.toString() + " " + (x + width).toString() + " " + y.toString() + " " + (y + height).toString();
-        var list = "<li class ='eachLabel' value='" + xyData + "'>" + labelName + "</li>";
+        var xyData = " " + x.toString() + "," + (x + width).toString() + "," + y.toString() + "," + (y + height).toString() + "," + labelName;
+        var list = "<li class ='eachLabel' value='" + xyData + "' name='" + imageName + "' title='" + labelName + "'>" + labelName + "<span style='float:right;margin-right:100px' onclick='deleteLi(this)'>" + "☓" + "</span>" + "</li>";
         $("#labelList").append(list);
     });
 
+
     $("#labelPost").on('click', function () {
         var labelList = [];
+        var labelName = [];
+        var imgName;
+
+        //后台无法获取文件名称的话，自动生成一个
+        var labelFileName = $("#labelFile").val();
+        var classFileName = $("#classFile").val();
+        if (labelFileName == null || labelFileName == "") {
+            labelFileName = "label_" + guid() + ".txt";
+        }
+        if (classFileName == null || classFileName == "") {
+            classFileName = "class_" + guid() + ".class";
+            $("#hasClassFile").val(0);
+        } else {
+            $("#hasClassFile").val(1);
+        }
+
         $(".eachLabel").each(function () {
-            labelList.push($(this).attr("value"));
+            var pushData;
+            if (imgName == null || imgName == "") {
+                pushData = $(this).attr("name") + $(this).attr("value");
+                imgName = $(this).attr("name");
+            } else {
+                pushData = $(this).attr("value");
+            }
+            labelName.push($(this).attr("title"));
+            labelList.push(pushData);
         });
+
         var data = {
-            data: JSON.stringify(labelList)
+            data: JSON.stringify(labelList),
+            labelName: JSON.stringify(labelName),
+            labelFileName: JSON.stringify(labelFileName),
+            classFileName: JSON.stringify(classFileName),
+            hasClassFile: JSON.stringify($("#hasClassFile").val())
         };
+
         $.ajax({
             url: "saveLabel",
             type: "POST",
             data: data,
             dataType: "json",
             success: function (res) {
-                console.log(res);
+                localStorage.setItem('label', res.label);
+                localStorage.setItem('class', res.class);
+                $(".eachLabel").each(function () {
+                    //提交到后台一次就清空前台保存的标签
+                    $(this).remove();
+                });
             }
         });
     });
+
+    //删除按钮点击事件
+    function deleteLi(e) {
+        $(e).closest('li').remove();
+    }
+
+    //用于生成uuid
+    function S4() {
+        return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+    }
+
+    function guid() {
+        return (S4() + S4() + S4() + S4() + S4() + S4() + S4() + S4());
+    }
 </script>
 </body>
 </html>

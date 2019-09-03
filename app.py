@@ -11,6 +11,8 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024
 ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 # 存储地址
 app.config['UPLOAD_FOLDER'] = 'static/uploads/'
+# 标签文件开头地址
+app.config['LABEL_FILE_HEAD'] = '/images/'
 # 编码问题
 app.config['JSON_AS_ASCII'] = False
 
@@ -27,7 +29,7 @@ def upload():
         for file in request.files.getlist('file'):
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'] + "images/", filename))
                 # 当为post请求时保存文件并刷新页面
             else:
                 return jsonify({"error": 1001, "msg": "请检查上传的图片类型，仅限于png、jpg、jpeg、gif"})
@@ -39,7 +41,7 @@ def upload():
 @app.route("/view", methods=['POST'])
 def view():
     # 项目系统目录，防止放入镜像时路径错误
-    rootdir = app.root_path + "/static/uploads"
+    rootdir = app.root_path + "/static/uploads/images"
     picutres = {}
     for filenames in os.walk(rootdir):
         if filenames is not None:
@@ -47,36 +49,65 @@ def view():
             break
     if names is not None:
         for name in names:
-            # picutres[name] = rootdir + "/" + name
-            picutres[name] = "static/uploads/" + name
+            picutres[name] = "static/uploads/images/" + name
     return json.dumps(picutres)
+
+
+@app.route("/viewTwo", methods=['POST'])
+def viewTwo():
+    # 项目系统目录，防止放入镜像时路径错误
+    rootdir = app.root_path + "/static/uploads"
+    labels = {}
+    for filenames in os.walk(rootdir):
+        if filenames is not None:
+            names = filenames[2]
+            break
+    if names is not None:
+        for name in names:
+            fileType = name.split(".")[1]
+            if fileType == "txt":
+                labels['label_file_name'] = name
+            elif fileType == "class":
+                labels['class_file_name'] = name
+    return json.dumps(labels)
 
 
 @app.route("/saveLabel", methods=['POST'])
 def saveLabel():
-    realData = []
-    rootAddress = app.root_path + "/static/uploads/"
+    class_set = set()
+    returnDic = {}
+    rootAddress = app.config['LABEL_FILE_HEAD']
     data = json.loads(request.form.get('data'))
-    for d in data:
-        d = rootAddress + d
-        realData.append(d)
-    # 此处用w+无法实现读取，只能先r读取后再w
+    labelName = json.loads(request.form.get('labelName'))
+    labelFileName = json.loads(request.form.get("labelFileName"))
+    classFileName = json.loads(request.form.get("classFileName"))
+    hasClassFile = json.loads(request.form.get("hasClassFile"))
+    if data[0] is not None:
+        data[0] = rootAddress + data[0]
     try:
-        with open('label_list.json', 'r') as f1:
-            oldData = f1.read()
-            if oldData is not None and oldData != "":
-                old = json.loads(oldData)
+        # 读取原先的内容
+        if hasClassFile == 1:
+            with open(app.config['UPLOAD_FOLDER'] + classFileName, 'r') as f1:
+                old = f1.read().split("\n")
                 for o in old:
-                    realData.append(o)
-    finally:
-        f1.close()
-    try:
-        with open('label_list.json', 'w') as f2:
-            content = json.dumps(realData)
+                    class_set.update(o)
+        else:
+            pass
+        # 新提交的内容
+        for label in labelName:
+            class_set.update(label)
+        with open(app.config['UPLOAD_FOLDER'] + classFileName, 'w') as f3:
+            for c in sorted(class_set):
+                f3.write(c + '\n')
+        with open(app.config['UPLOAD_FOLDER'] + labelFileName, 'a+') as f2:
+            content = "".join(data) + "\n"
             f2.write(content)
     finally:
+        f3.close()
         f2.close()
-    return json.dumps(realData)
+    returnDic['label'] = labelFileName
+    returnDic['class'] = classFileName
+    return json.dumps(returnDic)
 
 
 if __name__ == "__main__":
